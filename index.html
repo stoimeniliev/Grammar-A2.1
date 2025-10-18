@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>German Grammar Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-base {
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        }
+        .btn-base:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .btn-base:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .option-btn.correct { background-color: #22c55e !important; border-color: #16a34a !important; color: white !important; }
+        .option-btn.incorrect { background-color: #ef4444 !important; border-color: #dc2626 !important; color: white !important; }
+        .feedback-container { transition: opacity 0.3s ease-in-out; }
+        
+        /* Study Section Styles */
+        .study-section h3 { font-size: 1.25rem; font-weight: 600; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .study-section h4 { font-size: 1.1rem; font-weight: 600; color: #334155; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .study-section p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .study-section code { background-color: #f1f5f9; color: #475569; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-weight: 600; }
+        .study-section table { width: 100%; margin-top: 1rem; border-collapse: collapse; }
+        .study-section th, .study-section td { padding: 0.75rem; text-align: left; border: 1px solid #e2e8f0; }
+        .study-section th { background-color: #f8fafc; }
+
+        /* Flashcard Styles */
+        .flippable-card-container { perspective: 1000px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flippable-card-container.is-flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; border: 2px solid #e2e8f0; border-radius: 1rem; }
+        .flashcard-back { transform: rotateY(180deg); background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-2xl bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+        
+        <!-- Main Menu -->
+        <div id="main-menu">
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 text-center mb-2">German Grammar Trainer</h1>
+            <p class="text-slate-500 text-center mb-8">Choose a mode to get started.</p>
+            <div class="grid grid-cols-1 gap-4">
+                <button data-view="study-container" class="view-btn btn-base w-full p-6 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-indigo-400">
+                    <h2 class="text-xl font-bold mb-2 text-indigo-600">Study</h2>
+                    <p class="text-slate-500">Review the grammar rules for verbs, prepositions, and cases.</p>
+                </button>
+                <button data-view="flashcard-menu" class="view-btn btn-base w-full p-6 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-cyan-400">
+                    <h2 class="text-xl font-bold mb-2 text-cyan-600">Flashcards</h2>
+                    <p class="text-slate-500">Drill concepts with interactive flashcards and hints.</p>
+                </button>
+                <button data-view="practice-container" class="view-btn btn-base w-full p-6 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-green-400">
+                    <h2 class="text-xl font-bold mb-2 text-green-600">Practice Quiz</h2>
+                    <p class="text-slate-500">Test your knowledge with a multiple-choice quiz.</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Generic Back Button Header -->
+        <div id="view-header" class="hidden justify-between items-center border-b pb-4 mb-6">
+            <h1 id="view-title" class="text-xl sm:text-2xl font-bold text-slate-800"></h1>
+            <button class="back-to-menu-btn text-indigo-600 font-semibold hover:underline">Main Menu</button>
+        </div>
+        
+        <!-- Flashcard Type Selection Menu -->
+        <div id="flashcard-menu" class="hidden">
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800 text-center mb-6">Choose Flashcard Type</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button id="simple-flashcards-btn" class="btn-base w-full p-6 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-cyan-400">
+                    <h3 class="text-lg font-bold mb-1 text-cyan-700">Simple: Rules & Concepts</h3>
+                    <p class="text-slate-500 font-normal">Practice the core rules for verbs and prepositions.</p>
+                </button>
+                <button id="complex-flashcards-btn" class="btn-base w-full p-6 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-cyan-400">
+                    <h3 class="text-lg font-bold mb-1 text-cyan-700">Complex: Sentences</h3>
+                    <p class="text-slate-500 font-normal">Apply the rules in full sentences.</p>
+                </button>
+            </div>
+            <div class="text-center mt-6">
+                <button class="back-to-menu-btn text-indigo-600 font-semibold hover:underline">Back to Main Menu</button>
+            </div>
+        </div>
+
+
+        <!-- Study View -->
+        <div id="study-container" class="hidden">
+            <div class="study-section text-slate-700">
+                <h3>Verb Pairs: Movement vs. Position</h3>
+                <p>One verb describes the action (movement, takes <code class="text-blue-600">Accusative</code>), the other describes the state (position, takes <code class="text-red-600">Dative</code>).</p>
+                <table>
+                    <thead><tr><th>Movement (Accusative)</th><th>Position (Dative)</th><th>Meaning</th></tr></thead>
+                    <tbody>
+                        <tr><td>stellen</td><td>stehen</td><td>to place (upright); to stand</td></tr>
+                        <tr><td>legen</td><td>liegen</td><td>to lay (flat); to lie</td></tr>
+                        <tr><td>setzen</td><td>sitzen</td><td>to seat (someone); to be seated</td></tr>
+                        <tr><td>hängen</td><td>hängen</td><td>to hang (something); to be hanging</td></tr>
+                        <tr><td>stecken</td><td>stecken</td><td>to stick/put in; to be inserted</td></tr>
+                    </tbody>
+                </table>
+                
+                <h3>Prepositions</h3>
+                <h4>1. Two-Way Prepositions (*Wechselpräpositionen*)</h4>
+                <p>These take <code class="text-blue-600">Accusative</code> for movement (*Wohin?*) and <code class="text-red-600">Dative</code> for position (*Wo?*).</p>
+                 <table>
+                    <thead><tr><th>Preposition</th><th>Movement Example (Accusative)</th><th>Position Example (Dative)</th></tr></thead>
+                    <tbody>
+                        <tr><td>an</td><td>Ich hänge das Bild <strong>an die</strong> Wand.</td><td>Das Bild hängt <strong>an der</strong> Wand.</td></tr>
+                        <tr><td>auf</td><td>Ich lege das Buch <strong>auf den</strong> Tisch.</td><td>Das Buch liegt <strong>auf dem</strong> Tisch.</td></tr>
+                        <tr><td>in</td><td>Die Katze geht <strong>in das</strong> Haus.</td><td>Die Katze ist <strong>in dem</strong> Haus.</td></tr>
+                        <tr><td>hinter</td><td>Er geht <strong>hinter den</strong> Baum.</td><td>Er steht <strong>hinter dem</strong> Baum.</td></tr>
+                        <tr><td>neben</td><td>Stell den Stuhl <strong>neben den</strong> Tisch.</td><td>Der Stuhl steht <strong>neben dem</strong> Tisch.</td></tr>
+                        <tr><td>über</td><td>Das Flugzeug fliegt <strong>über die</strong> Stadt.</td><td>Die Lampe hängt <strong>über dem</strong> Tisch.</td></tr>
+                        <tr><td>unter</td><td>Der Hund kriecht <strong>unter das</strong> Bett.</td><td>Der Hund liegt <strong>unter dem</strong> Bett.</td></tr>
+                        <tr><td>vor</td><td>Fahr das Auto <strong>vor die</strong> Garage.</td><td>Das Auto steht <strong>vor der</strong> Garage.</td></tr>
+                        <tr><td>zwischen</td><td>Setz dich <strong>zwischen die</strong> Kinder.</td><td>Er sitzt <strong>zwischen den</strong> Kindern.</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>2. Prepositions Always with Accusative</h4>
+                <table>
+                    <thead><tr><th>Preposition</th><th>Example</th></tr></thead>
+                    <tbody>
+                        <tr><td>durch</td><td>Wir gehen <strong>durch den</strong> Park. (We walk through the park.)</td></tr>
+                        <tr><td>für</td><td>Das Geschenk ist <strong>für dich</strong>. (The gift is for you.)</td></tr>
+                        <tr><td>gegen</td><td>Er fährt <strong>gegen einen</strong> Baum. (He drives into a tree.)</td></tr>
+                        <tr><td>ohne</td><td>Ich gehe nicht <strong>ohne meinen</strong> Schirm. (I'm not going without my umbrella.)</td></tr>
+                        <tr><td>um</td><td>Wir sitzen <strong>um den</strong> Tisch. (We are sitting around the table.)</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>3. Prepositions Always with Dative</h4>
+                <table>
+                    <thead><tr><th>Preposition</th><th>Example</th></tr></thead>
+                    <tbody>
+                        <tr><td>aus</td><td>Sie kommt <strong>aus der</strong> Schweiz. (She comes from Switzerland.)</td></tr>
+                        <tr><td>bei</td><td>Er wohnt <strong>bei seinen</strong> Eltern. (He lives with his parents.)</td></tr>
+                        <tr><td>mit</td><td>Ich fahre <strong>mit dem</strong> Zug. (I am traveling by train.)</td></tr>
+                        <tr><td>nach</td><td>Wir fliegen <strong>nach</strong> Deutschland. (We are flying to Germany.)</td></tr>
+                        <tr><td>seit</td><td>Er lernt <strong>seit einem</strong> Jahr Deutsch. (He has been learning German for a year.)</td></tr>
+                        <tr><td>von</td><td>Das ist ein Geschenk <strong>von meiner</strong> Tante. (That is a gift from my aunt.)</td></tr>
+                        <tr><td>zu</td><td>Ich gehe <strong>zum</strong> Arzt. (I am going to the doctor.)</td></tr>
+                    </tbody>
+                </table>
+
+                 <h3>Verbs with Fixed Cases</h3>
+                <h4>Verbs Always with Accusative</h4>
+                <table>
+                    <thead><tr><th>Verb</th><th>Example</th></tr></thead>
+                    <tbody>
+                         <tr><td>haben</td><td>Ich habe <strong>einen</strong> Hund. (I have a dog.)</td></tr>
+                         <tr><td>sehen</td><td>Siehst du <strong>den</strong> Mann? (Do you see the man?)</td></tr>
+                         <tr><td>kaufen</td><td>Er kauft <strong>einen</strong> neuen Computer. (He is buying a new computer.)</td></tr>
+                         <tr><td>fragen</td><td>Ich frage <strong>den</strong> Lehrer. (I ask the teacher.)</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Verbs Always with Dative</h4>
+                <table>
+                    <thead><tr><th>Verb</th><th>Example</th></tr></thead>
+                    <tbody>
+                         <tr><td>helfen</td><td>Kannst du <strong>mir</strong> helfen? (Can you help me?)</td></tr>
+                         <tr><td>danken</td><td>Ich danke <strong>dir</strong> für das Geschenk. (I thank you for the gift.)</td></tr>
+                         <tr><td>gefallen</td><td>Das Kleid gefällt <strong>der</strong> Frau. (The dress is pleasing to the woman.)</td></tr>
+                         <tr><td>antworten</td><td>Bitte antworte <strong>dem</strong> Lehrer. (Please answer the teacher.)</td></tr>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+        <!-- Flashcard View -->
+        <div id="flashcard-view-container" class="hidden">
+            <div class="flex justify-between items-center pb-4 mb-2">
+                <div id="flashcard-counter" class="text-sm font-semibold text-slate-500"></div>
+            </div>
+            <div class="flippable-card-container h-64 mb-6">
+                <div class="flashcard-inner">
+                    <div class="flashcard-front">
+                        <p id="flashcard-question" class="text-xl text-center"></p>
+                    </div>
+                    <div class="flashcard-back">
+                        <p id="flashcard-answer" class="text-2xl font-bold text-center"></p>
+                        <p id="flashcard-explanation" class="text-slate-600 mt-2 text-center"></p>
+                    </div>
+                </div>
+            </div>
+            <div id="flashcard-options-container" class="grid grid-cols-2 gap-4 mb-4"></div>
+            <div id="flashcard-hint-container" class="text-center mb-4 min-h-[1.5rem]">
+                <button id="flashcard-hint-btn" class="text-sm text-cyan-600 hover:underline">Show Hint</button>
+                <p id="flashcard-hint-text" class="hidden text-slate-500"></p>
+            </div>
+            <div class="flex justify-between items-center">
+                 <button id="flip-card-btn" class="btn-base bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-cyan-600">Flip</button>
+                 <button id="next-flashcard-btn" class="btn-base bg-slate-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-slate-700">Next</button>
+            </div>
+        </div>
+
+        <!-- Practice Quiz View -->
+        <div id="practice-container" class="hidden">
+            <!-- Header and content will be injected by JS -->
+        </div>
+    </div>
+
+    <script>
+        // Data for both modes
+        const fullComplexQuestionPool = [
+            // --- NEW: Fixed Accusative Prepositions ---
+            { question: "Wir fahren ___ den Tunnel (m).", options: ['durch den', 'durch dem'], answer: 'durch den', explanation: "Translation: 'We are driving through the tunnel.' The preposition 'durch' always takes the Accusative case. 'Tunnel' is masculine (der), so it becomes 'den'.", hint: "Tunnel is masculine (der)." },
+            { question: "Dieses Geschenk ist ___ meine Mutter (f).", options: ['für die', 'für der'], answer: 'für die', explanation: "Translation: 'This gift is for my mother.' The preposition 'für' always takes the Accusative case. 'Mutter' is feminine (die), so it remains 'die'.", hint: "Mutter is feminine (die)." },
+            { question: "Er läuft ___ die Wand (f).", options: ['gegen die', 'gegen der'], answer: 'gegen die', explanation: "Translation: 'He runs into the wall.' The preposition 'gegen' always takes the Accusative case. 'Wand' is feminine (die), so it remains 'die'.", hint: "Wand is feminine (die)." },
+            { question: "Ich kann nicht ___ meinen Kaffee (m) leben.", options: ['ohne meinen', 'ohne meinem'], answer: 'ohne meinen', explanation: "Translation: 'I can't live without my coffee.' The preposition 'ohne' always takes the Accusative case. 'Kaffee' is masculine (der), so the possessive pronoun is 'meinen'.", hint: "Kaffee is masculine (der)." },
+            { question: "Die Familie sitzt ___ den Tisch (m).", options: ['um den', 'um dem'], answer: 'um den', explanation: "Translation: 'The family is sitting around the table.' The preposition 'um' always takes the Accusative case. 'Tisch' is masculine (der), so it's 'den'.", hint: "Tisch is masculine (der)." },
+            
+            // --- NEW: Fixed Dative Prepositions ---
+            { question: "Das Wasser kommt ___ dem Hahn (m).", options: ['aus dem', 'aus den'], answer: 'aus dem', explanation: "Translation: 'The water is coming out of the tap.' The preposition 'aus' always takes the Dative case. 'Hahn' is masculine (der), so it becomes 'dem'.", hint: "Hahn is masculine (der)." },
+            { question: "Er wohnt ___ seiner Freundin (f).", options: ['bei seiner', 'bei seine'], answer: 'bei seiner', explanation: "Translation: 'He lives with his girlfriend.' The preposition 'bei' always takes the Dative case. 'Freundin' is feminine (die), so the possessive pronoun is 'seiner'.", hint: "Freundin is feminine (die)." },
+            { question: "Fährst du ___ dem Auto (n)?", options: ['mit dem', 'mit das'], answer: 'mit dem', explanation: "Translation: 'Are you going by car?' The preposition 'mit' always takes the Dative case. 'Auto' is neuter (das), so it becomes 'dem'.", hint: "Auto is neuter (das)." },
+            { question: "___ dem Essen gehen wir spazieren.", options: ['Nach dem', 'Nach das'], answer: 'Nach dem', explanation: "Translation: 'After the meal, we're going for a walk.' The preposition 'nach' always takes the Dative case. 'Essen' is neuter (das), so it becomes 'dem'.", hint: "Essen is neuter (das)." },
+            { question: "Ich lerne ___ einem Monat (m) Deutsch.", options: ['seit einem', 'seit einen'], answer: 'seit einem', explanation: "Translation: 'I have been learning German for one month.' The preposition 'seit' always takes the Dative case. 'Monat' is masculine (der), so it's 'einem'.", hint: "Monat is masculine (der)." },
+            { question: "Das ist ein Brief ___ meinem Anwalt (m).", options: ['von meinem', 'von meinen'], answer: 'von meinem', explanation: "Translation: 'That is a letter from my lawyer.' The preposition 'von' always takes the Dative case. 'Anwalt' is masculine (der), so the possessive is 'meinem'.", hint: "Anwalt is masculine (der)." },
+            { question: "Wir gehen heute Abend ___ unseren Freunden (pl).", options: ['zu unseren', 'zu unsere'], answer: 'zu unseren', explanation: "Translation: 'We are going to our friends' place tonight.' The preposition 'zu' always takes the Dative case. 'Freunde' is plural, so the dative possessive is 'unseren'.", hint: "Freunde is plural." },
+            
+            // --- NEW: Fixed Accusative Verbs ---
+            { question: "Ich habe ___ Hund (m).", options: ['einen', 'einem'], answer: 'einen', explanation: "Translation: 'I have a dog.' The verb 'haben' always takes an Accusative object. 'Hund' is masculine (der), so the indefinite article is 'einen'.", hint: "Hund is masculine (der)." },
+            { question: "Siehst du ___ Film (m)?", options: ['den', 'dem'], answer: 'den', explanation: "Translation: 'Do you see the movie?' The verb 'sehen' always takes an Accusative object. 'Film' is masculine (der), so the definite article is 'den'.", hint: "Film is masculine (der)." },
+            { question: "Wir brauchen ___ neue Lampe (f).", options: ['eine', 'einer'], answer: 'eine', explanation: "Translation: 'We need a new lamp.' The verb 'brauchen' always takes an Accusative object. 'Lampe' is feminine (die), so the indefinite article is 'eine'.", hint: "Lampe is feminine (die)." },
+            { question: "Er fragt ___ Polizisten (m).", options: ['den', 'dem'], answer: 'den', explanation: "Translation: 'He asks the police officer.' The verb 'fragen' always takes an Accusative object. 'Polizist' is masculine (der), so it's 'den'.", hint: "Polizist is masculine (der)." },
+
+            // --- NEW: Fixed Dative Verbs ---
+            { question: "Kannst du ___ Kind (n) helfen?", options: ['dem', 'das'], answer: 'dem', explanation: "Translation: 'Can you help the child?' The verb 'helfen' always takes a Dative object. 'Kind' is neuter (das), so the definite article is 'dem'.", hint: "Kind is neuter (das)." },
+            { question: "Ich danke ___ Frau (f) für die Hilfe.", options: ['der', 'die'], answer: 'der', explanation: "Translation: 'I thank the woman for the help.' The verb 'danken' always takes a Dative object. 'Frau' is feminine (die), so it's 'der'.", hint: "Frau is feminine (die)." },
+            { question: "Das neue Auto gefällt ___ Mann (m) sehr.", options: ['dem', 'den'], answer: 'dem', explanation: "Translation: 'The new car is very pleasing to the man.' The verb 'gefallen' always takes a Dative object. 'Mann' is masculine (der), so it's 'dem'.", hint: "Mann is masculine (der)." },
+            { question: "Der Hund gehört ___ Nachbarin (f).", options: ['der', 'die'], answer: 'der', explanation: "Translation: 'The dog belongs to the (female) neighbor.' The verb 'gehören' always takes a Dative object. 'Nachbarin' is feminine (die), so it's 'der'.", hint: "Nachbarin is feminine (die)." },
+
+            // --- Original Questions ---
+            { question: "Ich ___ die Vase auf den Tisch.", options: ['stelle', 'stehe'], answer: 'stelle', explanation: "Translation: 'I am placing the vase on the table.' This is a movement (Wohin?), requiring 'stellen'.", hint: "Vase is feminine (die)." },
+            { question: "Die Vase ___ auf dem Tisch.", options: ['stellt', 'steht'], answer: 'steht', explanation: "Translation: 'The vase is standing on the table.' This is a position (Wo?), requiring 'stehen'.", hint: "Vase is feminine (die)." },
+            { question: "Er ___ den Teppich auf den Boden.", options: ['legt', 'liegt'], answer: 'legt', explanation: "Translation: 'He is laying the carpet on the floor.' This is a movement (Wohin?), requiring 'legen'.", hint: "Boden is masculine (der)." },
+            { question: "Der Teppich ___ auf dem Boden.", options: ['legt', 'liegt'], answer: 'liegt', explanation: "Translation: 'The carpet is lying on the floor.' This is a position (Wo?), requiring 'liegen'.", hint: "Boden is masculine (der)." },
+            { question: "Die Katze springt ___ Dach (n).", options: ['auf das', 'auf dem'], answer: 'auf das', explanation: "Translation: 'The cat jumps onto the roof.' Movement (Wohin?) requires Accusative. 'Dach' is neuter, so it's 'auf das'.", hint: "Dach is neuter (das)." },
+            { question: "Die Katze schläft ___ Dach (n).", options: ['auf das', 'auf dem'], answer: 'auf dem', explanation: "Translation: 'The cat is sleeping on the roof.' Position (Wo?) requires Dative. 'Dach' is neuter, so it's 'auf dem'.", hint: "Dach is neuter (das)." }
+        ];
+
+        const simpleQuestionPool = [
+             // --- NEW: Fixed Accusative Prepositions ---
+            { question: "Which case ALWAYS follows the preposition 'durch' (through)?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'durch' is a fixed preposition that always requires the Accusative case." },
+            { question: "Which case ALWAYS follows the preposition 'für' (for)?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'für' is a fixed preposition that always requires the Accusative case." },
+            { question: "Which case ALWAYS follows the preposition 'gegen' (against)?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'gegen' is a fixed preposition that always requires the Accusative case." },
+            { question: "Which case ALWAYS follows the preposition 'ohne' (without)?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'ohne' is a fixed preposition that always requires the Accusative case." },
+            { question: "Which case ALWAYS follows the preposition 'um' (around)?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'um' is a fixed preposition that always requires the Accusative case." },
+            
+            // --- NEW: Fixed Dative Prepositions ---
+            { question: "Which case ALWAYS follows the preposition 'aus' (from/out of)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'aus' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'bei' (at/with)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'bei' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'mit' (with)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'mit' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'nach' (after/to)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'nach' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'seit' (since/for)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'seit' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'von' (from/by)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'von' is a fixed preposition that always requires the Dative case." },
+            { question: "Which case ALWAYS follows the preposition 'zu' (to)?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'zu' is a fixed preposition that always requires the Dative case." },
+            
+            // --- NEW: Fixed Accusative Verbs ---
+            { question: "Which case does the verb 'haben' (to have) take?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'haben' always takes a direct object in the Accusative case (e.g., Ich habe EINEN Hund)." },
+            { question: "Which case does the verb 'sehen' (to see) take?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'sehen' always takes a direct object in the Accusative case (e.g., Ich sehe DEN Mann)." },
+            { question: "Which case does the verb 'brauchen' (to need) take?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "'brauchen' always takes a direct object in the Accusative case (e.g., Ich brauche EINE Lampe)." },
+
+            // --- NEW: Fixed Dative Verbs ---
+            { question: "Which case does the verb 'helfen' (to help) take?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'helfen' always takes an object in the Dative case (e.g., Ich helfe DEM Kind)." },
+            { question: "Which case does the verb 'danken' (to thank) take?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'danken' always takes an object in the Dative case (e.g., Ich danke DER Frau)." },
+            { question: "Which case does the verb 'gefallen' (to be pleasing to) take?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "'gefallen' always takes an object in the Dative case (e.g., Das Auto gefällt DEM Mann)." },
+
+            // Original questions
+            { question: "Does the verb 'stellen' (to place upright) describe a movement or a static position?", options: ['Movement (Wohin?)', 'Position (Wo?)'], answer: 'Movement (Wohin?)', explanation: "'stellen' is the action of placing something, which is a movement. Therefore, it's used with the Accusative case." },
+            { question: "Does the verb 'stehen' (to stand) describe a movement or a static position?", options: ['Movement (Wohin?)', 'Position (Wo?)'], answer: 'Position (Wo?)', explanation: "'stehen' describes the state of standing in one place. This is a static position, so it's used with the Dative case." },
+            { question: "Going INTO the house ('in'). Which case?", options: ['Accusative', 'Dative'], answer: 'Accusative', explanation: "Going 'into' somewhere is a movement towards a destination (Wohin?). Therefore, you must use the Accusative case." },
+            { question: "Already INSIDE the house ('in'). Which case?", options: ['Accusative', 'Dative'], answer: 'Dative', explanation: "Being 'inside' a place is a static location (Wo?). Therefore, you must use the Dative case." }
+        ];
+
+        // --- App Navigation ---
+        const mainMenu = document.getElementById('main-menu');
+        const viewHeader = document.getElementById('view-header');
+        const viewTitle = document.getElementById('view-title');
+        const viewButtons = document.querySelectorAll('.view-btn');
+        const backToMenuButtons = document.querySelectorAll('.back-to-menu-btn');
+        const allViews = document.querySelectorAll('#app-container > div:not(#main-menu)');
+        const flashcardMenu = document.getElementById('flashcard-menu');
+        const simpleFlashcardsBtn = document.getElementById('simple-flashcards-btn');
+        const complexFlashcardsBtn = document.getElementById('complex-flashcards-btn');
+
+
+        const viewTitles = {
+            'study-container': 'Study Guide',
+            'flashcard-view-container': 'Flashcards',
+            'practice-container': 'Practice Quiz',
+            'flashcard-menu': 'Flashcards'
+        };
+
+        function showView(viewId) {
+            mainMenu.classList.add('hidden');
+            allViews.forEach(view => view.classList.add('hidden'));
+
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                viewHeader.classList.remove('hidden');
+                viewTitle.textContent = viewTitles[viewId] || '';
+                
+                if (viewId === 'practice-container') startQuiz();
+            }
+        }
+
+        viewButtons.forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+        backToMenuButtons.forEach(btn => btn.addEventListener('click', () => {
+             viewHeader.classList.add('hidden');
+             allViews.forEach(view => view.classList.add('hidden'));
+             mainMenu.classList.remove('hidden');
+        }));
+
+        simpleFlashcardsBtn.addEventListener('click', () => {
+            showView('flashcard-view-container');
+            startFlashcards('simple');
+        });
+
+        complexFlashcardsBtn.addEventListener('click', () => {
+            showView('flashcard-view-container');
+            startFlashcards('complex');
+        });
+
+
+        // --- Flashcard Mode ---
+        const flashcardViewContainer = document.getElementById('flashcard-view-container');
+        const flippableCard = flashcardViewContainer.querySelector('.flippable-card-container');
+        const flashcardCounterEl = document.getElementById('flashcard-counter');
+        const flashcardQuestionEl = document.getElementById('flashcard-question');
+        const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
+        const flashcardAnswerEl = document.getElementById('flashcard-answer');
+        const flashcardExplanationEl = document.getElementById('flashcard-explanation');
+        const flashcardHintContainer = document.getElementById('flashcard-hint-container');
+        const flashcardHintBtn = document.getElementById('flashcard-hint-btn');
+        const flashcardHintText = document.getElementById('flashcard-hint-text');
+        const flipCardBtn = document.getElementById('flip-card-btn');
+        const nextFlashcardBtn = document.getElementById('next-flashcard-btn');
+        
+        let flashcardQuestions = [];
+        let currentFlashcardIndex = 0;
+
+        function startFlashcards(type) {
+            flashcardQuestions = (type === 'simple' ? simpleQuestionPool : fullComplexQuestionPool).sort(() => Math.random() - 0.5);
+            currentFlashcardIndex = 0;
+            loadFlashcard();
+        }
+
+        function loadFlashcard() {
+            flippableCard.classList.remove('is-flipped');
+            flipCardBtn.disabled = false;
+
+            const card = flashcardQuestions[currentFlashcardIndex];
+            
+            flashcardCounterEl.textContent = `Card ${currentFlashcardIndex + 1} / ${flashcardQuestions.length}`;
+            flashcardQuestionEl.textContent = card.question;
+            flashcardAnswerEl.textContent = card.answer;
+            flashcardExplanationEl.textContent = card.explanation;
+
+            if (card.hint) {
+                flashcardHintText.textContent = card.hint;
+                flashcardHintText.classList.add('hidden');
+                flashcardHintBtn.classList.remove('hidden');
+                flashcardHintContainer.classList.remove('hidden');
+            } else {
+                flashcardHintContainer.classList.add('hidden');
+            }
+
+            flashcardOptionsContainer.innerHTML = '';
+            const options = card.options;
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.classList.add('option-btn', 'btn-base', 'w-full', 'p-3', 'border-2', 'rounded-lg', 'font-semibold', 'text-slate-700', 'bg-white', 'hover:border-cyan-400');
+                btn.onclick = () => {
+                    flashcardOptionsContainer.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+                    flipCardBtn.disabled = true;
+
+                    if (opt === card.answer) {
+                        btn.classList.add('correct');
+                    } else {
+                        btn.classList.add('incorrect');
+                    }
+                    
+                    setTimeout(() => {
+                        flippableCard.classList.add('is-flipped');
+                    }, 300);
+                };
+                flashcardOptionsContainer.appendChild(btn);
+            });
+        }
+
+        flipCardBtn.addEventListener('click', () => flippableCard.classList.toggle('is-flipped'));
+        
+        flashcardHintBtn.addEventListener('click', () => {
+            flashcardHintBtn.classList.add('hidden');
+            flashcardHintText.classList.remove('hidden');
+        });
+
+        nextFlashcardBtn.addEventListener('click', () => {
+            currentFlashcardIndex = (currentFlashcardIndex + 1) % flashcardQuestions.length;
+            loadFlashcard();
+        });
+
+
+        // --- Practice Quiz Mode ---
+        const practiceContainer = document.getElementById('practice-container');
+        let quizQuestions = [];
+        let currentQuizQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        function startQuiz() {
+            quizQuestions = [...fullComplexQuestionPool].sort(() => Math.random() - 0.5).slice(0, 10);
+            currentQuizQuestionIndex = 0;
+            score = 0;
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            answered = false;
+            const question = quizQuestions[currentQuizQuestionIndex];
+            practiceContainer.innerHTML = `
+                <div class="flex justify-between items-center pb-4 mb-6">
+                    <div class="text-sm font-semibold text-slate-500">
+                        Question <span id="question-number">${currentQuizQuestionIndex + 1}</span> / ${quizQuestions.length}
+                    </div>
+                </div>
+                <p class="text-lg sm:text-xl text-slate-700 mb-6">${question.question}</p>
+                <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    ${question.options.map(opt => `<button class="option-btn btn-base w-full p-4 border-2 rounded-lg text-left font-semibold text-slate-700 bg-white hover:border-green-400">${opt}</button>`).join('')}
+                </div>
+                <div id="feedback-container" class="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200 hidden"></div>
+                <div class="mt-6 text-right">
+                    <button id="next-quiz-btn" class="btn-base bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-colors hidden">Next</button>
+                </div>
+            `;
+            
+            const optionButtons = practiceContainer.querySelectorAll('.option-btn');
+            optionButtons.forEach(btn => btn.addEventListener('click', () => selectQuizAnswer(btn, btn.textContent)));
+        }
+
+        function selectQuizAnswer(button, selectedOption) {
+            if (answered) return;
+            answered = true;
+            
+            const question = quizQuestions[currentQuizQuestionIndex];
+            const isCorrect = selectedOption === question.answer;
+
+            if (isCorrect) {
+                score++;
+                button.classList.add('correct');
+            } else {
+                button.classList.add('incorrect');
+            }
+
+            practiceContainer.querySelectorAll('.option-btn').forEach(btn => {
+                if (btn.textContent === question.answer) btn.classList.add('correct');
+                btn.disabled = true;
+            });
+
+            const feedbackContainer = practiceContainer.querySelector('#feedback-container');
+            feedbackContainer.innerHTML = `
+                <h3 class="font-bold text-lg mb-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}">${isCorrect ? 'Correct!' : 'Not quite!'}</h3>
+                <p class="text-slate-600">${question.explanation}</p>`;
+            feedbackContainer.classList.remove('hidden');
+            
+            const nextBtn = practiceContainer.querySelector('#next-quiz-btn');
+            nextBtn.classList.remove('hidden');
+            nextBtn.addEventListener('click', () => {
+                currentQuizQuestionIndex++;
+                if (currentQuizQuestionIndex < quizQuestions.length) loadQuizQuestion();
+                else showQuizResults();
+            });
+        }
+        
+        function showQuizResults() {
+             practiceContainer.innerHTML = `
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-4">Practice Complete!</h2>
+                    <p class="text-lg text-slate-600 mb-2">You scored:</p>
+                    <p class="text-5xl font-extrabold text-indigo-600 mb-8">${score}/${quizQuestions.length}</p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button onclick="startQuiz()" class="btn-base w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700">Practice Again</button>
+                        <button class="back-to-menu-btn btn-base w-full sm:w-auto bg-slate-200 text-slate-800 font-bold py-3 px-8 rounded-lg hover:bg-slate-300">Main Menu</button>
+                    </div>
+                </div>
+             `;
+             // Re-attach event listener for the new "Main Menu" button in the results
+            practiceContainer.querySelector('.back-to-menu-btn').addEventListener('click', () => {
+                viewHeader.classList.add('hidden');
+                allViews.forEach(view => view.classList.add('hidden'));
+                mainMenu.classList.remove('hidden');
+            });
+        }
+    </script>
+</body>
+</html>
+
